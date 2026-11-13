@@ -1,4 +1,4 @@
-#!/home/icyfeather/projects/HarnessFix/.venv/bin/python3
+#!/usr/bin/env python3
 """Extract a semantic trajectory summary for analysis agents.
 
 Usage: python3 extract_traj_summary.py <traj_path> [--full]

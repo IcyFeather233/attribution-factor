@@ -347,5 +347,5 @@ model:
     timeout: 300
     max_retries: 0
     drop_params: true
-    api_base: "https://api.vectortara.com/v1"
+    api_base: "http://localhost:8000/v1"
     # api_key is read from OPENAI_API_KEY environment variable (set in .env)

@@ -55,7 +55,7 @@ Validated locally:
 
 - Weak task-agent model: `openai/gpt-4.1-mini`
 - Stronger comparison model: `openai/gpt-4.1`
-- Analysis / planning / modify model: `openai/claude-opus-4-5-20251101-thinking`
+- Analysis / planning / modify model: `openai/MODEL`
 
 These defaults reflect the currently working gateway routes on this machine.
 
@@ -139,7 +139,7 @@ export APPWORLD_ROOT=/home/icyfeather/projects/appworld_root
 ```bash
 .venv/bin/python3 run_pipeline_swe.py \
   --model openai/gpt-4.1-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --start-version 1 \
   --max-iterations 3 \
   --workers 4 \
@@ -151,7 +151,7 @@ export APPWORLD_ROOT=/home/icyfeather/projects/appworld_root
 ```bash
 .venv/bin/python3 run_pipeline_gaia.py \
   --model openai/gpt-4.1-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --start-version 1 \
   --max-iterations 3 \
   --workers 2 \
@@ -164,7 +164,7 @@ export APPWORLD_ROOT=/home/icyfeather/projects/appworld_root
 APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
 .venv/bin/python3 run_pipeline_appworld.py \
   --model openai/gpt-4.1-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --start-version 1 \
   --max-iterations 3 \
   --workers 2 \

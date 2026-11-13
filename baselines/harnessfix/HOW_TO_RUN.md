@@ -64,7 +64,7 @@ echo 'OPENAI_API_KEY=your-key' >> .env
 |------|--------|------|
 | Task Agent 推理（SWE / GAIA / AppWorld） | `openai/gpt-4.1-mini` | 当前验证通过、适合作为弱模型主线 |
 | 对比用更强 Task Agent | `openai/gpt-4.1` | 与 `gpt-4.1-mini` 同家族，适合做强模型对照 |
-| 失败分析 / 改进 | `openai/claude-opus-4-5-20251101-thinking` | api_base: `https://api.vectortara.com/v1` |
+| 失败分析 / 改进 | `openai/MODEL` | api_base: `http://localhost:8000/v1` |
 
 ---
 
@@ -315,7 +315,7 @@ enhancement_implementation/
 | 参数 | 说明 |
 |------|------|
 | `--mode` | `swe`（默认）或 `gaia` |
-| `--model` / `-m` | 分析模型（默认 `openai/claude-opus-4-5-20251101-thinking`） |
+| `--model` / `-m` | 分析模型（默认 `openai/MODEL`） |
 | `--traces-dir` | traces 目录 |
 | `--eval-results` | 评测结果 JSON 文件 |
 | `--gaia-subset` | GAIA 数据集目录（仅 `--mode gaia` 需要） |
@@ -410,7 +410,7 @@ BOOTSTRAP（仅首次）
 .venv/bin/python3 run_pipeline_swe.py \
     --start-version 1 \
     --max-iterations 3 \
-    --analysis-model openai/claude-opus-4-5-20251101-thinking \
+    --analysis-model openai/MODEL \
     --model openai/Qwen3-Coder \
     --workers 4 \
     --cost-limit 1
@@ -420,7 +420,7 @@ BOOTSTRAP（仅首次）
 |------|------|------|
 | `--start-version` | 起始版本号 | 2 |
 | `--max-iterations` | 最多循环轮次 | 3 |
-| `--analysis-model` | 分析/改进用模型 | `openai/claude-opus-4-5-20251101-thinking` |
+| `--analysis-model` | 分析/改进用模型 | `openai/MODEL` |
 | `--model` | task agent 推理模型 | `openai/gpt-5-mini` |
 | `--workers` | 推理并发数 | 4 |
 | `--cost-limit` | 单实例费用上限 | 1.0 |
@@ -530,7 +530,7 @@ enhancement_implementation/results/
     --start-version 1 \
     --max-iterations 3 \
     --model openai/gpt-4.1-mini \
-    --analysis-model openai/claude-opus-4-5-20251101-thinking \
+    --analysis-model openai/MODEL \
     --workers 2 \
     --concurrency 4
 ```
@@ -572,7 +572,7 @@ APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
     --start-version 1 \
     --max-iterations 3 \
     --model openai/gpt-4.1-mini \
-    --analysis-model openai/claude-opus-4-5-20251101-thinking \
+    --analysis-model openai/MODEL \
     --workers 2 \
     --concurrency 4
 ```
@@ -689,7 +689,7 @@ python -m swebench.harness.run_evaluation \
 # ── 闭环改进流水线（SWE） ─────────────────────────────────────────────
 .venv/bin/python3 run_pipeline_swe.py \
     --start-version 1 --max-iterations 3 \
-    --analysis-model openai/claude-opus-4-5-20251101-thinking \
+    --analysis-model openai/MODEL \
     --model openai/gpt-4.1-mini \
     --workers 4 --cost-limit 1
 
@@ -703,7 +703,7 @@ APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
 .venv/bin/python3 run_pipeline_appworld.py \
     --start-version 1 --max-iterations 3 \
     --model openai/gpt-4.1-mini \
-    --analysis-model openai/claude-opus-4-5-20251101-thinking \
+    --analysis-model openai/MODEL \
     --workers 2 --concurrency 4
 
 # ── 手动 val 对比（兼容工具） ─────────────────────────────────────────

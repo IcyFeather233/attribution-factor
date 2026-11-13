@@ -1,4 +1,4 @@
-#!/home/icyfeather/projects/HarnessFix/.venv/bin/python3
+#!/usr/bin/env python3
 """Closed-loop HarnessFix pipeline for GAIA benchmark.
 
 Mirrors run_pipeline_swe.py but uses:
@@ -880,7 +880,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="HarnessFix pipeline for GAIA")
     parser.add_argument("--model", default="openai/gpt-5-mini",
                         help="Model for GAIA inference (default: openai/gpt-5-mini)")
-    parser.add_argument("--analysis-model", default="openai/claude-opus-4-5-20251101-thinking",
+    parser.add_argument("--analysis-model", default="openai/MODEL",
                         help="Model for failure analysis + aggregation")
     parser.add_argument("--workers", type=int, default=2,
                         help="Parallel task workers for inference (default: 2)")

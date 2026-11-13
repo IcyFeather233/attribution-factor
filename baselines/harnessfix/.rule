@@ -161,23 +161,23 @@ Run commands from the repository root unless stated otherwise. Prefer
 ```bash
 .venv/bin/python run_pipeline_swe.py \
   --model openai/gpt-5-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --workers 4 --cost-limit 1 --max-iterations 3
 
 .venv/bin/python run_pipeline_gaia.py \
   --model openai/gpt-5-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --workers 2 --concurrency 4 --max-iterations 3
 
 APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
 .venv/bin/python run_pipeline_appworld.py \
   --model openai/gpt-5-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --workers 2 --concurrency 4 --max-iterations 3
 
 .venv/bin/python run_pipeline_terminal_bench.py \
   --model openai/gpt-5-mini \
-  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --analysis-model openai/MODEL \
   --workers 2 --max-iterations 3
 ```
 
@@ -250,7 +250,7 @@ APPWORLD_AGENT_IMAGE=appworld-agent-pypi:latest \
 ```bash
 .venv/bin/python failure_analysis/run_analysis.py \
   --mode gaia \
-  --model openai/claude-opus-4-5-20251101-thinking \
+  --model openai/MODEL \
   --traces-dir traces/gaia_test60_gpt_5_mini_original \
   --eval-results eval/gaia_results_test60_gpt_5_mini_original/results.json \
   --gaia-subset data/gaia_test_60 \

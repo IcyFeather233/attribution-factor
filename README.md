@@ -7,11 +7,11 @@ The adapters are research code, not a benchmark-independent turnkey framework. T
 ## Layout
 
 - `baselines/`: local upstream code, including project modifications. Individual projects retain their own license files. The HarnessFix repository has no top-level license in the source snapshot; check its upstream terms before redistribution or reuse.
-- `qwen_failure_comparison/mini-swe-agent-v2.4.6/`: shared task agent used by the aligned experiment.
-- `qwen_gpt55_experiments/{gepa,scope,recreate,meta_harness,harnessfix}/`: method adapters and injection points.
-- `qwen_gpt55_experiments/common/analysis_payloads.py`: generation of the ten conditions.
-- `qwen_gpt55_experiments/position_native.py` and `common/position_evidence.py`: position-only protocol and native adapters. `POSITION_EVIDENCE_V1.md` describes the original run; paths and 148-task instructions there are historical.
-- `qwen_gpt55_experiments/tests/`: offline checks; some historical recovery tests assume the original project and data.
+- `agent_runtime/mini-swe-agent-v2.4.6/`: shared task agent used by the aligned experiment.
+- `attribution_experiments/{gepa,scope,recreate,meta_harness,harnessfix}/`: method adapters and injection points.
+- `attribution_experiments/common/analysis_payloads.py`: generation of the ten conditions.
+- `attribution_experiments/position_native.py` and `common/position_evidence.py`: position-only protocol and native adapters. `POSITION_EVIDENCE_V1.md` describes the original run; paths and 148-task instructions there are historical.
+- `attribution_experiments/tests/`: offline checks; some historical recovery tests assume the original project and data.
 
 | Condition | Supplied evidence |
 | --- | --- |
@@ -43,16 +43,16 @@ export ATTRIBUTION_ANALYSIS_ROOT=/path/to/analysis
 export ATTRIBUTION_GRAPH_ROOT=/path/to/graphs
 export ATTRIBUTION_PARQUET=/path/to/tasks.parquet
 export ATTRIBUTION_REFERENCE_TRACE=/path/to/reference.traj.json
-export ATTRIBUTION_PAYLOAD_ROOT="$PWD/qwen_gpt55_experiments/payloads"
-python -m qwen_gpt55_experiments.generate_payloads
-python -m qwen_gpt55_experiments.common.position_evidence --generate
+export ATTRIBUTION_PAYLOAD_ROOT="$PWD/attribution_experiments/payloads"
+python -m attribution_experiments.generate_payloads
+python -m attribution_experiments.common.position_evidence --generate
 ```
 
 Generation of the legacy payloads overwrites files in its output directory; use a fresh output directory. The position generator refuses to overwrite its output. It reads legacy payloads from `ATTRIBUTION_PAYLOAD_ROOT` and verifies each index against the trace. The position manifest freezes hashes of traces and payloads, so do not move or alter inputs when resuming. The graph semantics and attribution labels still require human or independent review.
 
 ## Running experiments
 
-`position_native --method METHOD --group GROUP --validate-only` checks position evidence and prints the method arguments without calling a model. It requires at least three task IDs and a generated position manifest. For an actual run, configure `SIDECAR_API_KEY`, `QWEN_TASK_API_KEY`, `OPTIMIZER_BASE_URL`, `OPTIMIZER_MODEL`, `QWEN_TASK_BASE_URL`, and `TASK_MODEL`; install the dependencies for each upstream method and the SWE-bench backend. Review the method-specific options and promotion rules before running.
+`python -m attribution_experiments.position_native --method METHOD --group GROUP --validate-only` checks position evidence and prints the method arguments without calling a model. It requires at least three task IDs and a generated position manifest. For an actual run, configure `OPTIMIZER_API_KEY`, `TASK_MODEL_API_KEY`, `OPTIMIZER_BASE_URL`, `OPTIMIZER_MODEL`, `TASK_MODEL_BASE_URL`, and `TASK_MODEL`; install the dependencies for each upstream method and the SWE-bench backend. The default names and localhost endpoints are placeholders. For an endpoint that requires a placeholder key, explicitly set the corresponding key to `EMPTY`. Provider-specific request fields can be supplied as a JSON object in `TASK_MODEL_EXTRA_BODY`; they are not sent by default. The current ReCreate router identifies the two endpoints by model name, so use distinct model identifiers for its task and optimizer endpoints. Review the method-specific options and promotion rules before running.
 
 The execution path still contains project-specific assumptions: `/volume/med` persistent storage, `server241` remote Docker, the `native_baseline_runs/.venv` layout in some workers, SWE-bench image naming, and mini-swe-agent scaffolds. The older scripts `plan_budget_repair`, `register_position_protocol`, and dated recovery scripts describe particular historical runs and are not portable launchers. Do not run them unchanged on a new dataset. An end-to-end new-dataset benchmark has not been validated in this extraction. Assess data splits and avoid treating overlapping adaptation/validation tasks as held-out test data.
 

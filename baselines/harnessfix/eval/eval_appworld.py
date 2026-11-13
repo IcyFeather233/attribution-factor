@@ -1,4 +1,4 @@
-#!/home/icyfeather/projects/HarnessFix/.venv/bin/python3
+#!/usr/bin/env python3
 """AppWorld benchmark evaluator."""
 
 from __future__ import annotations

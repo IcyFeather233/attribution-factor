@@ -1,6 +1,6 @@
 __pycache__/
 *.py[cod]
-!qwen_gpt55_experiments/harnessfix/run_native_impl_bounded_validation.cpython-311.pyc
+!attribution_experiments/harnessfix/run_native_impl_bounded_validation.cpython-311.pyc
 .pytest_cache/
 .venv/
 .env
@@ -8,9 +8,9 @@ __pycache__/
 !.env.example
 !.env.template
 .secrets/
-qwen_gpt55_experiments/runtime/
-qwen_gpt55_experiments/payloads/
-qwen_gpt55_experiments/payloads_position_v1/
-qwen_gpt55_experiments/task_ids.txt
+attribution_experiments/runtime/
+attribution_experiments/payloads/
+attribution_experiments/payloads_position_v1/
+attribution_experiments/task_ids.txt
 data/
 *.log

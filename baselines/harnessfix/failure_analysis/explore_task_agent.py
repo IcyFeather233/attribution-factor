@@ -1,4 +1,4 @@
-#!/home/icyfeather/projects/HarnessFix/.venv/bin/python3
+#!/usr/bin/env python3
 """Run an exploration agent to deeply understand the task_agent codebase.
 
 The agent reads source files, traces execution paths, and produces a detailed
@@ -9,7 +9,7 @@ analysis agent so it has precise knowledge of what the task agent actually does.
 
 Usage:
   .venv/bin/python3 failure_analysis/explore_task_agent.py
-  .venv/bin/python3 failure_analysis/explore_task_agent.py --model openai/claude-opus-4-5-20251101-thinking
+  .venv/bin/python3 failure_analysis/explore_task_agent.py --model openai/MODEL
   .venv/bin/python3 failure_analysis/explore_task_agent.py --force   # re-run even if doc exists
 """
 
@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 
 IMPL_DOC_PATH = Path(__file__).parent / "task_agent_impl_doc.md"
-DEFAULT_MODEL = "openai/claude-opus-4-5-20251101-thinking"
+DEFAULT_MODEL = "openai/MODEL"
 TRAJ_OUTPUT_PATH = Path(__file__).parent / "results" / "explore_task_agent.traj.json"
 
 TASK_AGENT_SRC = str(REPO_ROOT / "task_agent" / "mini-swe-agent" / "src" / "minisweagent")
@@ -155,7 +155,7 @@ MODEL_KWARGS = {
     "timeout": 300,
     "max_retries": 0,
     "drop_params": True,
-    "api_base": "https://api.vectortara.com/v1",
+    "api_base": "http://localhost:8000/v1",
     # api_key is read from OPENAI_API_KEY environment variable (set in .env)
 }
 

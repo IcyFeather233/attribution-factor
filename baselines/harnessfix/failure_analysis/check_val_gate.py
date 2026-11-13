@@ -1,4 +1,4 @@
-#!/home/icyfeather/projects/HarnessFix/.venv/bin/python3
+#!/usr/bin/env python3
 """Regression-aware validation gate with target metrics, regressions, and cost."""
 
 from __future__ import annotations

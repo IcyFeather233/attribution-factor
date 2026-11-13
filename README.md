@@ -6,6 +6,18 @@
 
 当前执行适配面向 SWE-bench 类代码任务和 mini-swe-agent v2.4.6 格式轨迹。换用其他 Agent 时，需要将轨迹和归因结果转换为下述格式；如果工具接口、harness 或评测环境发生变化，还需要调整执行与评测适配器。
 
+## Baseline 原论文与原仓库
+
+| 方法 | 原论文 | 原仓库 |
+| --- | --- | --- |
+| GEPA | [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457) | [gepa-ai/gepa](https://github.com/gepa-ai/gepa) |
+| SCOPE | [SCOPE: Prompt Evolution for Enhancing Agent Effectiveness](https://arxiv.org/abs/2512.15374) | [JarvisPei/SCOPE](https://github.com/JarvisPei/SCOPE) |
+| ReCreate | [ReCreate: Reasoning and Creating Domain Agents Driven by Experience](https://arxiv.org/abs/2601.11100) | [zz-haooo/ReCreate](https://github.com/zz-haooo/ReCreate) |
+| Meta-Harness | [Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052) | [stanford-iris-lab/meta-harness](https://github.com/stanford-iris-lab/meta-harness) |
+| HarnessFix | [From Failed Trajectories to Reliable LLM Agents: Diagnosing and Repairing Harness Flaws](https://arxiv.org/abs/2606.06324) | [HarnessFix/HarnessFix](https://github.com/HarnessFix/HarnessFix) |
+
+本仓库在这些上游方法的基础上增加了统一实验接口和归因信息注入适配；具体流程与注入位置见下文。
+
 ## 目录结构
 
 | 路径 | 用途 |

@@ -1,0 +1,333 @@
+# .rule / AGENTS.md / CLAUDE.md
+
+This file is the single repository-level instruction source. The root `AGENTS.md`
+and `CLAUDE.md` files are symlinks to this file; update `.rule` only.
+
+## Project Purpose
+
+HarnessFix is a trace-guided, closed-loop harness repair prototype for
+long-horizon agents. It runs a task agent on a benchmark, evaluates the run,
+turns failures into HTIR-backed diagnoses, consolidates recurring defects into
+repair plans, asks a modify agent to edit a scoped copy of the task agent, and
+validates the candidate before accepting or iterating.
+
+The current code is aligned with the paper-style flow:
+
+1. run task-agent inference and benchmark evaluation
+2. compile HTIR with agent trace steps, outcome anchors, and node-local facets
+3. diagnose failures by backtracking from outcome anchors to candidate
+   responsible steps
+4. use node-level evidence to choose responsible steps and implicated harness
+   layers
+5. aggregate diagnoses by harness layer, defect class, and operator family
+6. generate a repair plan/spec
+7. modify a copied enhanced agent
+8. audit the diff and validate against baseline/regression gates
+
+## Repository Layout
+
+- `run_pipeline_swe.py`: closed-loop pipeline for SWE-Bench Verified.
+- `run_pipeline_gaia.py`: closed-loop pipeline for GAIA.
+- `run_pipeline_appworld.py`: closed-loop pipeline for AppWorld.
+- `run_pipeline_terminal_bench.py`: Terminal-Bench 2.0 pipeline via local Harbor Terminus-2.
+- `task_agent/mini-swe-agent/`: original SWE task agent.
+- `task_agent/open_deep_research/`: original GAIA task agent.
+- `task_agent/appworld_agent/`: AppWorld runner plus vendored official AppWorld
+  ReAct agent under `appworld_official_agents/`.
+- `task_agent/terminal_bench_agent/harbor/`: local Harbor source checkout used for Terminal-Bench; do not replace this with an opaque PyPI install.
+- `task_agent/terminal_bench_agent/`: HarnessFix adapter around local Harbor Terminus-2.
+- `task_agent/run_swebench.sh`, `task_agent/run_gaia.sh`,
+  `task_agent/run_appworld.sh`: benchmark inference wrappers.
+- `failure_analysis/`: HTIR compilation, diagnosis, consolidation, operator
+  registry, validation metrics, audit, and repair memory.
+- `enhancement_implementation/`: modify-agent configs for SWE, GAIA, AppWorld.
+- `data/`: sampled train/val/test subsets and smoke subsets.
+- `eval/`: benchmark evaluators and saved eval outputs.
+- `traces/`: task-agent traces and `preds.json` outputs.
+- `exp_result/`: recorded experiment summaries and copied raw eval JSON files.
+- `improvement_plans/`: generated repair plans and JSON specs.
+
+## Current Data Splits
+
+Use these current split names; older `*_100` GAIA/AppWorld split names are stale.
+
+- SWE: `data/verified_train_100`, `data/verified_val_50`,
+  `data/verified_test_100`.
+- GAIA: `data/gaia_train_60`, `data/gaia_val_30`, `data/gaia_test_60`.
+- AppWorld: `data/appworld_train_90`, `data/appworld_val_45`,
+  `data/appworld_test_90`.
+- Terminal-Bench 2.0: preferred verified source should be cloned to `data/terminal_bench_2_verified`;
+  split directories are `data/terminal_bench_train`, `data/terminal_bench_val`,
+  and `data/terminal_bench_test` after running `data/sample_terminal_bench.py`.
+  The committed `data/terminal_bench_splits.json` manifest fixes the 34/17/34
+  train/val/test task IDs for reproducibility.
+
+Held-out test subsets should not be used inside repair iterations. Use them only
+for final evaluation and result recording.
+
+## Task Agents and Trace Formats
+
+The benchmark agents are not identical.
+
+- SWE uses `task_agent/mini-swe-agent` and stores mini-swe-agent style
+  `messages` trajectories plus trace-level `model_calls` derived from assistant
+  turns. Each `model_calls` entry keeps the API-facing `request_messages`
+  (with mini-SWE local `extra` metadata removed), the full `response_message`,
+  provider `raw_response` when available, and usage metadata.
+- GAIA uses `task_agent/open_deep_research` and stores smolagents-style
+  `trajectory` steps plus trace-level `model_calls` collected by
+  `open_deep_research.tracing.TracingLiteLLMModel`. Each model call records
+  `request_messages`, `response_message`, component labels such as `manager`,
+  `search_agent`, `manager.text_inspector`, `file_context`, or `reformulator`,
+  and redacted request options.
+- AppWorld currently uses the official simplified ReAct code backend only.
+  The old mini-swe-agent-based `harnessfix` AppWorld backend was removed.
+  AppWorld official traces are written by
+  `task_agent/appworld_agent/src/appworld_agent/official_react_adapter.py` with
+  `trajectory_format = appworld-official-simplified-react-adapter`. Official
+  ReAct traces include `model_calls` converted from `official_logs/lm_calls.jsonl`;
+  each call stores `request_messages` and `response_message`, with sensitive
+  runtime fields such as API keys redacted before writing the normalized trace.
+  Existing AppWorld official traces generated before this normalization can be
+  upgraded in place with
+  `.venv/bin/python task_agent/appworld_agent/backfill_official_traces.py --root traces`;
+  this only works when `official_logs/lm_calls.jsonl` is present.
+- Terminal-Bench uses local Harbor Terminus-2. The runner enables
+  `store_all_messages=true` by default and the converted `<task_id>.traj.json`
+  includes `messages` for the full Terminus-2 chat history plus `model_calls`
+  entries with `request_messages` and `response_message` for each assistant
+  turn. The copied ATIF `<task_id>.atif.json` is still useful for action/tool
+  structure, but ATIF `step.message` is a step-local dialogue message, not the
+  complete chat request/response payload.
+
+For AppWorld, keep `AppWorldDockerEnvironment.execute_persistent()` in
+`core.py`; the official adapter depends on this persistent runtime. Do not
+reintroduce a completion-without-effect guard into the initial task agent. That
+pattern is an offline diagnosis/repair possibility, not baseline runtime logic.
+
+## Candidate New Domain: Terminal-Bench 2.0
+
+If adding Terminal-Bench, target Terminal-Bench 2.0 through Harbor and use only
+the `terminus-2` reference agent as the default initial task agent. Do not
+wire `claude-code`, `codex`, `gemini-cli`, `openhands`, `mini-swe-agent`, or
+other Harbor agents into the default experiment path unless the user explicitly
+asks for additional baselines.
+
+For Harbor/Terminal-Bench dependencies, do not install an opaque package
+directly from PyPI as the working dependency. Clone the source repository into
+the local workspace, install it in editable/local mode, and keep the runner
+pointing at that local checkout so the harness and agent code can be modified
+and re-evaluated later.
+
+Current local integration:
+
+- Harbor source lives at `task_agent/terminal_bench_agent/harbor/` and `task_agent/run_terminal_bench.sh`
+  prepends `task_agent/terminal_bench_agent/harbor/src` to `PYTHONPATH`.
+- The HarnessFix Terminal-Bench adapter is
+  `task_agent/terminal_bench_agent/run_terminal_bench_entry.py`.
+- It converts Harbor job outputs into `preds.json`, per-task `result.json`,
+  `<task_id>.atif.json`, and `<task_id>.traj.json` with
+  `trajectory_format = harbor-terminus-2-atif-adapter`. By default, the adapter
+  passes `store_all_messages=true` to Terminus-2 and expands the resulting
+  `agent_result.metadata.all_messages` into trace-level `messages` and
+  assistant-turn `model_calls`. Use `--no-store-all-messages` only when reduced
+  trace artifacts are explicitly desired.
+- Prefer the verified Hugging Face data source from
+  `https://huggingface.co/datasets/zai-org/terminal-bench-2-verified`, which
+  contains 89 Terminal-Bench 2.0 tasks. Run
+  `.venv/bin/python data/download_terminal_bench.py --source zai_verified` to
+  clone it into `data/terminal_bench_2_verified`, check out the pinned commit in
+  `data/terminal_bench_splits.json`, and create the local 34/17/34 train/val/test
+  split from that manifest. If Hugging Face is unavailable, the script still
+  supports the older `--source github` and `--source huggingface` fallbacks. These
+  local data/split directories are ignored by git.
+
+## Common Commands
+
+Run commands from the repository root unless stated otherwise. Prefer
+`.venv/bin/python` or `.venv/bin/python3`.
+
+### Pipeline Dry Runs
+
+```bash
+.venv/bin/python run_pipeline_swe.py --dry-run --max-iterations 1
+.venv/bin/python run_pipeline_gaia.py --dry-run --max-iterations 1
+.venv/bin/python run_pipeline_appworld.py --dry-run --max-iterations 1
+.venv/bin/python run_pipeline_terminal_bench.py --dry-run --max-iterations 1
+```
+
+### Full Pipelines
+
+```bash
+.venv/bin/python run_pipeline_swe.py \
+  --model openai/gpt-5-mini \
+  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --workers 4 --cost-limit 1 --max-iterations 3
+
+.venv/bin/python run_pipeline_gaia.py \
+  --model openai/gpt-5-mini \
+  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --workers 2 --concurrency 4 --max-iterations 3
+
+APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
+.venv/bin/python run_pipeline_appworld.py \
+  --model openai/gpt-5-mini \
+  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --workers 2 --concurrency 4 --max-iterations 3
+
+.venv/bin/python run_pipeline_terminal_bench.py \
+  --model openai/gpt-5-mini \
+  --analysis-model openai/claude-opus-4-5-20251101-thinking \
+  --workers 2 --max-iterations 3
+```
+
+### Direct Inference
+
+```bash
+# SWE
+./task_agent/run_swebench.sh \
+  --subset "$(pwd)/data/verified_test_100" \
+  --split test --model openai/gpt-5-mini \
+  --workers 4 --output traces/swe_test_gpt_5_mini_original --cost-limit 1
+
+# GAIA
+./task_agent/run_gaia.sh \
+  --subset data/gaia_test_60 \
+  --model openai/gpt-5-mini \
+  --workers 2 --concurrency 4 \
+  --output traces/gaia_test60_gpt_5_mini_original
+
+# AppWorld official backend
+APPWORLD_ROOT=/home/icyfeather/projects/appworld_root \
+APPWORLD_AGENT_IMAGE=appworld-agent-pypi:latest \
+./task_agent/run_appworld.sh \
+  --subset data/appworld_test_90 \
+  --model openai/gpt-5-mini \
+  --workers 2 --concurrency 4 \
+  --output traces/appworld_test90_gpt_5_mini_official_react
+
+# Terminal-Bench 2.0 via local Harbor Terminus-2
+./task_agent/run_terminal_bench.sh \
+  --subset data/terminal_bench_test \
+  --model openai/gpt-5-mini \
+  --workers 2 \
+  --output traces/terminal_bench_test_gpt_5_mini_terminus2
+```
+
+### Direct Evaluation
+
+```bash
+# SWE
+.venv/bin/python -m swebench.harness.run_evaluation \
+  -d princeton-nlp/SWE-Bench_Verified -s test \
+  -p traces/swe_test_gpt_5_mini_original/preds.json \
+  --max_workers 4 -id swe_test_gpt_5_mini_original \
+  --report_dir eval/results_swe_test_gpt_5_mini_original \
+  -i $(cat data/verified_test_100/instance_ids.txt | tr '\n' ' ')
+
+# GAIA
+.venv/bin/python eval/eval_gaia.py \
+  --preds traces/gaia_test60_gpt_5_mini_original/preds.json \
+  --subset data/gaia_test_60 \
+  --traces-dir traces/gaia_test60_gpt_5_mini_original \
+  --output eval/gaia_results_test60_gpt_5_mini_original/results.json
+
+# AppWorld
+.venv/bin/python eval/eval_appworld.py \
+  --subset data/appworld_test_90 \
+  --traces-dir traces/appworld_test90_gpt_5_mini_official_react \
+  --output eval/appworld_results_test90_gpt_5_mini_official_react/results.json
+
+# Terminal-Bench
+.venv/bin/python eval/eval_terminal_bench.py \
+  --subset data/terminal_bench_test \
+  --traces-dir traces/terminal_bench_test_gpt_5_mini_terminus2 \
+  --output eval/terminal_bench_results_test_gpt_5_mini_terminus2/results.json
+```
+
+### Failure Analysis
+
+```bash
+.venv/bin/python failure_analysis/run_analysis.py \
+  --mode gaia \
+  --model openai/claude-opus-4-5-20251101-thinking \
+  --traces-dir traces/gaia_test60_gpt_5_mini_original \
+  --eval-results eval/gaia_results_test60_gpt_5_mini_original/results.json \
+  --gaia-subset data/gaia_test_60 \
+  --output-file failure_analysis/results/gaia_test60_gpt_5_mini_original_analysis.jsonl \
+  --workers 2 --resume
+```
+
+Use `--mode swe` with `--eval-results`, `--traces-dir`, and an output JSONL for
+SWE. Use `--mode appworld` with `--appworld-subset` for AppWorld. The analysis
+stage writes HTIR bundles under `failure_analysis/results/htir/...`.
+
+### Aggregation and Gate
+
+```bash
+.venv/bin/python failure_analysis/aggregate_results.py \
+  --mode appworld \
+  --results-file failure_analysis/results/<run>_analysis.jsonl \
+  --output improvement_plans/appworld_gpt_5_mini_v1.md \
+  --spec-output improvement_plans/appworld_gpt_5_mini_v1.json \
+  --force
+
+.venv/bin/python failure_analysis/check_val_gate.py \
+  --mode appworld \
+  --baseline-eval eval/appworld_results_appworld_val45_gpt_5_mini_original \
+  --current-eval eval/appworld_results_val45_gpt_5_mini_enhanced_v1 \
+  --baseline-traces traces/appworld_val45_gpt_5_mini_original \
+  --current-traces traces/appworld_val45_gpt_5_mini_enhanced_v1 \
+  --plan-spec improvement_plans/appworld_gpt_5_mini_v1.json \
+  --val-ids data/appworld_val_45/instance_ids.txt
+```
+
+## Experiment Results
+
+Current GPT-5 mini test-set results are recorded in:
+
+- `exp_result/gpt_5_mini_test_results.md`
+- `exp_result/gpt_5_mini_test_results.json`
+- `exp_result/raw_eval/`
+
+As currently recorded:
+
+- SWE-Bench Verified: 45/100 resolved, 45.00% resolved rate.
+- GAIA: 26/60 resolved, 43.33% accuracy.
+- AppWorld: 34/90 resolved, 37.78% task success rate.
+
+## Engineering Rules
+
+- Prefer `rg` / `rg --files` for searches.
+- Use existing local patterns rather than inventing new frameworks.
+- Keep changes scoped; do not refactor unrelated code while fixing a task.
+- Do not revert user changes. This repository often has generated traces,
+  results, and sampled data in the working tree.
+- Use `apply_patch` where the sandbox allows it. In this repo, commands may need
+  escalation because `/home/icyfeather/projects/HarnessFix` can sit outside the
+  default writable root.
+- Keep Python edits ASCII unless the file already requires otherwise.
+- Before committing or handing off code changes, run targeted checks such as:
+
+```bash
+git diff --check
+.venv/bin/python -m py_compile <changed-python-files>
+```
+
+## Environment Notes
+
+- Environment variables are loaded from the root `.env` by the main scripts.
+- Common model env vars: `OPENAI_API_KEY`, `OPENAI_API_BASE`, `LITELLM_API_KEY`,
+  `LITELLM_API_BASE`.
+- SWE uses Docker through SWE-Bench harness tasks.
+- AppWorld requires Docker image `appworld-agent-pypi:latest` and
+  `APPWORLD_ROOT=/home/icyfeather/projects/appworld_root`.
+- AppWorld official agent code is vendored under
+  `task_agent/appworld_agent/appworld_official_agents/` and is added to
+  `PYTHONPATH` by `task_agent/run_appworld.sh`.
+
+## Git Notes
+
+The user may ask for commits. Check status before staging. If asked to commit
+all current work, `git add -A`, run `git diff --cached --check`, commit, and push
+to the current branch/remote. Otherwise stage only files relevant to the task.
